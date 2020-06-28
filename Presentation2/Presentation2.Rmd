@@ -81,6 +81,7 @@ lag1lm = lm(LAG1 ~ DATE, data = umcsent.df)
 plot(lag1lm)
 summary(lag1lm)
 
-# The Dicky-Fuller test supports stationarity of lag 1 transformation at p < 0.01
+# The Dickey-Fuller test supports stationarity of lag 1 transformation at p < 0.01
 aTSA::adf.test(umcsent.df$LAG1)
 ```
+
