@@ -4,7 +4,9 @@ author: "Group 3: Michelle Nguyen, Jerden Daniels, Cassandra Garner, Eli Hymson,
 output: word_document
 ---
 
-```{r}
+```{r setup}
+knitr::opts_knit$set(root.dir = "~/STAT626/stat626/Data")
+
 library(tidyverse)
 library(readr)
 library(TSstudio)
@@ -14,25 +16,20 @@ library(forecast)
 library(tis)
 library(gridExtra)
 library(timeDate)
-library(ggplot2)
-
 ```
 
 ```{r}
+# Functionally identical to Presentation1.Rmd
+
 umscent = data(Michigan_CS)
 ts_info(Michigan_CS)
 
-```
-
-```{r}
 # 'UMCSENT2.csv' is the FRED file trimed from the first observation of 1978
 umcsent <- read_csv(file = 'UMCSENT2.csv')
 umcsent.df <- data.frame(
    DATE <- as.Date(umcsent$DATE),
    UMSCENT = as.numeric(umcsent$UMCSENT))
 
-```
-```{r}
 unrate = getSymbols('UNRATE',src='FRED', auto.assign = F, from = "1978-01-01" , to = "2020-05-01") 
 unrate.df = data.frame(date=time(unrate), coredata(unrate))
 recessions.df = read.table(textConnection(
@@ -69,94 +66,9 @@ recessions.df = read.table(textConnection(
 colClasses=c('Date', 'Date'), header=TRUE)
 
 recessions.trim = subset(recessions.df, Peak >= min(unrate.df$date) )
-```
-
-
-
-
-```{r}
 Yt = ts(umcsent$UMCSENT, frequency = 12, start = c(1978,1))
 ```
 
-
 ```{r}
-ggtsdisplay(Yt, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Consumer Sentiment")
-
 
 ```
-
-
-
-
-```{r}
-g = ggplot(umcsent) + geom_line(aes(x=umcsent$DATE, y=umcsent$UMCSENT)) + theme_bw()
-g = g + geom_rect(data=recessions.trim, aes(xmin=Peak, xmax=Trough, ymin=-Inf, ymax=+Inf), fill='pink', alpha=0.2) + labs(x = "Time", 
-       y = "index 1966:Q1 = 100",
-       title = "Consumer Sentiment") +
-  theme_minimal() +
-   scale_x_date(limits = as.Date(c("1978-01-01","2020-04-01"))) 
-  
-g
-```
-
-```{r}
-# 5-point moving average
-MA = stats::filter(umcsent$UMCSENT, filter=rep(1,5)/5, method="convolution", sides=2)
-umcsent.MA = data.frame(umcsent.df, MA)
-
-g2 = ggplot(umcsent.MA) +
-   geom_line(aes(x=DATE, y=MA)) +
-   theme_bw() + 
-   geom_rect(data=recessions.trim,
-             aes(xmin=Peak, xmax=Trough, ymin=-Inf, ymax=+Inf), fill='pink', alpha=0.2) +
-               labs(x = "Time", y = "index 1966:Q1 = 100",
-       title = "Consumer Sentiment: 5-month symmetric moving average") +
-  theme_minimal() + 
-   scale_x_date(limits = as.Date(c("1978-01-01","2020-04-01"))) 
-
-g2
-```
-
-```{r}
-# UMCSENT separated by components
-comp = read.csv("UMCSENT_COMPONENTS.csv")
-
-Personal.Finance.Current.MA = stats::filter(comp$Personal.Finance.Current, filter=rep(1,5)/5, method="convolution", sides=2)
-Personal.Finance.Expected.MA = stats::filter(comp$Personal.Finance.Expected, filter=rep(1,5)/5, method="convolution", sides=2)
-Business.Condition.12.Months.MA = stats::filter(comp$Business.Condition.12.Months, filter=rep(1,5)/5, method="convolution", sides=2)
-Business.Condition.5.Years.MA = stats::filter(comp$Business.Condition.5.Years, filter=rep(1,5)/5, method="convolution", sides=2)
-Buying.Conditions.MA = stats::filter(comp$Buying.Conditions, filter=rep(1,5)/5, method="convolution", sides=2)
-
-comp = data.frame(
-   comp,
-   Personal.Finance.Current.MA,
-   Personal.Finance.Expected.MA,
-   Business.Condition.12.Months.MA,
-   Business.Condition.5.Years.MA,
-   Buying.Conditions.MA
-)
-
-comp$Date = as.Date(paste(comp$Year, comp$Month, "01", sep="-"))
-
-g3 = ggplot(comp) +
-   geom_line(aes(x=Date, y=Personal.Finance.Current.MA, color="Current personal\n finance conditions")) +
-   geom_line(aes(x=Date, y=Personal.Finance.Expected.MA, color="Expected personal\n finance conditions")) + 
-   geom_line(aes(x=Date, y=Business.Condition.12.Months.MA, color="Expected business\n conditions (12 months)")) + 
-   geom_line(aes(x=Date, y=Business.Condition.5.Years.MA, color="Expected business\n conditions (5 years)")) + 
-   geom_line(aes(x=Date, y=Buying.Conditions.MA, color="Current buying conditions")) +
-   theme_bw() + 
-   geom_rect(data=recessions.trim,
-             aes(xmin=Peak, xmax=Trough, ymin=-Inf, ymax=+Inf), fill='pink', alpha=0.2) +
-               labs(x = "Time", y = "index 1966:Q1 = 100",
-       title = "Components of the UMCSEN Index (5-month moving average)") +
-  theme_minimal() + 
-   scale_color_discrete(name="Component") + 
-   scale_x_date(limits = as.Date(c("1978-01-01","2020-04-01"))) 
-
-g3
-```
-
-
-
-
-
