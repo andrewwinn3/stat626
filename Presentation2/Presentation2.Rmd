@@ -5,7 +5,7 @@ output: word_document
 ---
 
 ```{r setup}
-knitr::opts_knit$set(root.dir = "~/STAT626/stat626/Data")
+knitr::opts_knit$set(root.dir = "~/STAT626/stat626/Data") #Set to your Data directory
 
 library(tidyverse)
 library(readr)
@@ -21,14 +21,11 @@ library(timeDate)
 ```{r}
 # Functionally identical to Presentation1.Rmd
 
-umscent = data(Michigan_CS)
-ts_info(Michigan_CS)
-
 # 'UMCSENT2.csv' is the FRED file trimed from the first observation of 1978
 umcsent <- read_csv(file = 'UMCSENT2.csv')
 umcsent.df <- data.frame(
    DATE <- as.Date(umcsent$DATE),
-   UMSCENT = as.numeric(umcsent$UMCSENT))
+   UMCSENT = as.numeric(umcsent$UMCSENT))
 
 unrate = getSymbols('UNRATE',src='FRED', auto.assign = F, from = "1978-01-01" , to = "2020-05-01") 
 unrate.df = data.frame(date=time(unrate), coredata(unrate))
@@ -70,5 +67,20 @@ Yt = ts(umcsent$UMCSENT, frequency = 12, start = c(1978,1))
 ```
 
 ```{r}
+# Perform lag 1 differencing
+umcsent.df = data.frame(umcsent.df, LAG1 = c(NA, diff(umcsent$UMCSENT,1)))
+colnames(umcsent.df)[1] = "DATE"
 
+ggplot(data=umcsent.df) +
+  geom_line(aes(x=DATE, y=LAG1))
+
+# Residual plots suggest normality, homosketasticity, and constant mean.
+# Moreover, the intercept of the differenced series is not significant, suggesting
+#    that the original series has no general trend.
+lag1lm = lm(LAG1 ~ DATE, data = umcsent.df)
+plot(lag1lm)
+summary(lag1lm)
+
+# The Dicky-Fuller test supports stationarity of lag 1 transformation at p < 0.01
+aTSA::adf.test(umcsent.df$LAG1)
 ```
