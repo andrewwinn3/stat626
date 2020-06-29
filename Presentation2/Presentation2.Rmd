@@ -64,6 +64,10 @@ colClasses=c('Date', 'Date'), header=TRUE)
 
 recessions.trim = subset(recessions.df, Peak >= min(unrate.df$date) )
 Yt = ts(umcsent$UMCSENT, frequency = 12, start = c(1978,1))
+
+# UMCSENT separated by components
+comp = read.csv("UMCSENT_COMPONENTS.csv")
+comp$DATE = as.Date(paste(comp$Year, comp$Month, "01", sep="-"))
 ```
 
 ```{r}
@@ -74,7 +78,7 @@ colnames(umcsent.df)[1] = "DATE"
 ggplot(data=umcsent.df) +
   geom_line(aes(x=DATE, y=LAG1))
 
-# Residual plots suggest normality, homosketasticity, and constant mean.
+# Residual plots suggest normality, homosketasticity, and constant mean. (see below)
 # Moreover, the intercept of the differenced series is not significant, suggesting
 #    that the original series has no general trend.
 lag1lm = lm(LAG1 ~ DATE, data = umcsent.df)
@@ -83,5 +87,70 @@ summary(lag1lm)
 
 # The Dickey-Fuller test supports stationarity of lag 1 transformation at p < 0.01
 aTSA::adf.test(umcsent.df$LAG1)
-```
+```  
+The at first glance the residuals seem to have approximately constant variance. However, we see that there are regions with higher error variance, which corresponds to increased volatility in the original series. These regions are certainly worth noting, but the nonuniformity of noise variances is minor enough that it is likely permissible to ignore.
+
+```{r}
+# Repeat these procedures with comp, the dataframe of component series.
+# Abbreviations:
+# PFC: current personal finance conditions
+# PFE: personal finance expectations (12 months)
+# BC12: business conditions (12 months)
+# BC5: business conditions (5 years)
+# BC: current buying conditions
+comp$PFC.LAG1 = c(NA, diff(comp$Personal.Finance.Current,1))
+comp$PFE.LAG1 = c(NA, diff(comp$Personal.Finance.Expected,1))
+comp$BC12.LAG1 = c(NA, diff(comp$Business.Condition.12.Months,1))
+comp$BC5.LAG1 = c(NA, diff(comp$Business.Condition.5.Years,1))
+comp$BC.LAG1 = c(NA, diff(comp$Buying.Conditions,1))
+
+# Restructures comp dataframe to allow for use of faceting
+comp.facet = data.frame(DATE=rep(comp$DATE, 5),
+                        COMPONENT=rep(c('PFC', 'PFE', 'BC12', 'BC5', 'BC'), each=nrow(comp)),
+                        INDEX=c(comp$PFC.LAG1, comp$PFE.LAG1, comp$BC12.LAG1, comp$BC5.LAG1, comp$BC.LAG1))
+
+# Plots lag 1 differencing of components
+ggplot(data=comp.facet) + 
+  geom_line(aes(x=DATE, y=INDEX)) + 
+  facet_grid(COMPONENT~.)
+
+# Check residuals and slope estimates when viewing series as linear models.
+# Note that since components take strictly integer values, we'll have some natural
+#    clustering, but that is okay.
+PFC.lm = lm(PFC.LAG1 ~ DATE, data=comp)
+PFE.lm = lm(PFE.LAG1 ~ DATE, data=comp)
+BC12.lm = lm(BC12.LAG1 ~ DATE, data=comp)
+BC5.lm = lm(BC5.LAG1 ~ DATE, data=comp)
+BC.lm = lm(BC.LAG1 ~ DATE, data=comp)
+
+summary(PFC.lm)
+plot(PFC.lm)
+
+summary(PFE.lm)
+plot(PFE.lm)
+
+summary(BC12.lm)
+plot(BC12.lm)
+
+summary(BC5.lm)
+plot(BC5.lm)
+
+summary(BC.lm)
+plot(BC.lm)
+
+# Dickey-Fuller tests suggest alternative hypothesis of stationarity at p<0.01
+aTSA::adf.test(comp$PFC.LAG1)
+aTSA::adf.test(comp$PFE.LAG1)
+aTSA::adf.test(comp$BC12.LAG1)
+aTSA::adf.test(comp$BC5.LAG1)
+aTSA::adf.test(comp$BC.LAG1)
+```  
+
+The reasonable conclusions for individual components are essentially the same as for the UMCSENT index as a whole. We have the desired normality and regularity assumptions excpet for some (arguably insignificant) regions of volatility in which noise variance increases slightly. (Note that this seems most extreme in the 'buying conditions' series, so any further investigation should begin there. That is also the series for which the assumption of constant mean had the least evidence, although the evidence is still sufficiently strong.) The Dickey-Fuller tests for non-stationarity all return p-values less than 0.01, so it is reasonable to proceed under the assumptions that the lag 1 difference series are stationary.
+
+
+
+
+
+
 
