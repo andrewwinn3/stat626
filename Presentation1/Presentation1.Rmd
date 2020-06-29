@@ -4,7 +4,8 @@ author: "Group 3: Michelle Nguyen, Jerden Daniels, Cassandra Garner, Eli Hymson,
 output: word_document
 ---
 
-```{r}
+```{r setup}
+knitr::opts_knit$set(root.dir = "~/STAT626/stat626/Data") #Set to your Data directory
 library(tidyverse)
 library(readr)
 library(TSstudio)
