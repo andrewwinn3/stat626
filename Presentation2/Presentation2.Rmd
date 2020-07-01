@@ -1,8 +1,12 @@
 ---
 title: "University of Michigan: Consumer Sentiment (Report 2)"
 author: "Group 3: Michelle Nguyen, Jerden Daniels, Cassandra Garner, Eli Hymson, Andrew Winn"
+header-includes:
+  - \usepackage{amsmath}
 output: pdf_document
 ---
+
+\newcommand{\supt}[1]{^{(\text{#1})}}
 
 ```{r setup}
 knitr::opts_knit$set(root.dir = "~/STAT626/stat626/Data") #Set to your Data directory
@@ -174,4 +178,36 @@ t.test(comp$BC.LAG1)
 Once again, the Buying Conditions series yields the most significant test statistic. However,
 as the 95-percent confidence interval for mean lag-1 difference is $(-0.779, 0.558)$, we
 do not reject any null hypotheses that the differenced series have zero means, and as such
-we will not include drift in our random walk models.
+we will not include drift in our models. After calculating the empirical variances for the lag 1 differenced series, we have the following simple random walk models:
+
+```{r}
+var(umcsent.df$LAG1, na.rm=TRUE)
+var(comp$PFC.LAG1, na.rm=TRUE)
+var(comp$PFE.LAG1, na.rm=TRUE)
+var(comp$BC12.LAG1, na.rm=TRUE)
+var(comp$BC5.LAG1, na.rm=TRUE)
+var(comp$BC.LAG1, na.rm=TRUE)
+```
+
+\begin{align*}
+x\supt{UMCSENT}_t &= x\supt{UMCSENT}_{t-1} + w\supt{UMCSENT}_t&
+  w\supt{UMCSENT}_t &\sim N(0, 15.8)\\
+x\supt{PFC}_t &= x\supt{PFC}_{t-1} + w\supt{PFC}_t&
+  w\supt{PFC}_t &\sim N(0, 38.6)\\
+x\supt{PFE}_t &= x\supt{PFE}_{t-1} + w\supt{PFE}_t&
+  w\supt{PFE}_t &\sim N(0, 25.5)\\
+x\supt{BC12}_t &= x\supt{BC12}_{t-1} + w\supt{BC12}_t&
+  w\supt{PBC12}_t &\sim N(0, 117)\\
+x\supt{BC5}_t &= x\supt{BC5}_{t-1} + w\supt{BC5}_t&
+  w\supt{BC5}_t &\sim N(0, 59.7)\\
+x\supt{BC}_t &= x\supt{BC}_{t-1} + w\supt{BC}_t&
+  w\supt{BC}_t &\sim N(0, 58.7)\\
+\end{align*}
+\begin{quote}
+UMCSENT: University of Michigan Consumer Sentiment Index (the primary index)\\
+PFC: Current personal finance conditions\\
+PFE: Expected personal finance conditions (12 months)\\
+BC12: Expected business conditions (12 months)\\
+BC5: Expected business conditions (5 years)\\
+BC: Current buying conditions
+\end{quote}
