@@ -1,7 +1,7 @@
 ---
 title: "University of Michigan: Consumer Sentiment (Report 2)"
 author: "Group 3: Michelle Nguyen, Jerden Daniels, Cassandra Garner, Eli Hymson, Andrew Winn"
-output: word_document
+output: pdf_document
 ---
 
 ```{r setup}
@@ -148,9 +148,30 @@ aTSA::adf.test(comp$BC.LAG1)
 
 The reasonable conclusions for individual components are essentially the same as for the UMCSENT index as a whole. We have the desired normality and regularity assumptions excpet for some (arguably insignificant) regions of volatility in which noise variance increases slightly. (Note that this seems most extreme in the 'buying conditions' series, so any further investigation should begin there. That is also the series for which the assumption of constant mean had the least evidence, although the evidence is still sufficiently strong.) The Dickey-Fuller tests for non-stationarity all return p-values less than 0.01, so it is reasonable to proceed under the assumptions that the lag 1 difference series are stationary.
 
+\section*{Random walk models}
+For the lag 1 differenced series, we have already rejected the null hypotheses (at any reasonable $\alpha$-level) that each series is nonstationary. This implies that each of the original, undifferenced time series can be modeled by a random walk with i.i.d. white noise terms. We now wish to determine the presence or absence of any drift or trend.
 
+We previously used some simple linear models as a convenient way of investigating the
+white noise variance of each differenced series. Were the original series to have a trend,
+we would expect the DATE variable to have a statistically significant coefficient. However,
+our linear model diagnostics give us that the most significant DATE coefficient occurs
+in the model for the Buying Conditions lag 1 series, where the coefficient is -4.950e-5
+with standard error 7.642e-5 (505 degrees of freedom). This is hardly sufficient evidence 
+to justify inclusion of a trend term, so we now turn our attention to drift.
 
+Drift will be present in the undifferenced random walks if and only if the lag 1
+differenced series have nonzero mean, so we perform the classical t-tests for zero means:
 
+```{r}
+t.test(umcsent.df$LAG1)
+t.test(comp$PFC.LAG1)
+t.test(comp$PFE.LAG1)
+t.test(comp$BC12.LAG1)
+t.test(comp$BC5.LAG1)
+t.test(comp$BC.LAG1)
+```
 
-
-
+Once again, the Buying Conditions series yields the most significant test statistic. However,
+as the 95-percent confidence interval for mean lag-1 difference is $(-0.779, 0.558)$, we
+do not reject any null hypotheses that the differenced series have zero means, and as such
+we will not include drift in our random walk models.
