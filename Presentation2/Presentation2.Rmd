@@ -1,15 +1,16 @@
 ---
-title: "University of Michigan: Consumer Sentiment (Report 2)"
-author: "Group 3: Michelle Nguyen, Jerden Daniels, Cassandra Garner, Eli Hymson, Andrew Winn"
-header-includes:
-  - \usepackage{amsmath}
-output: pdf_document
+title: 'University of Michigan: Consumer Sentiment (Report 2)'
+author: 'Group 3: Michelle Nguyen, Jerden Daniels, Cassandra Garner, Eli Hymson, Andrew
+  Winn'
+output:
+  word_document: default
+  pdf_document: default
+header-includes: \usepackage{amsmath}
 ---
 
 \newcommand{\supt}[1]{^{(\text{#1})}}
 
 ```{r setup}
-knitr::opts_knit$set(root.dir = "~/STAT626/stat626/Data") #Set to your Data directory
 
 library(tidyverse)
 library(readr)
@@ -20,16 +21,19 @@ library(forecast)
 library(tis)
 library(gridExtra)
 library(timeDate)
+library(urca)
 ```
 
 ```{r}
 # Functionally identical to Presentation1.Rmd
 
 # 'UMCSENT2.csv' is the FRED file trimed from the first observation of 1978
-umcsent <- read_csv(file = 'UMCSENT2.csv')
+umcsent <- read_csv(file = '~/Downloads/UMCSENT-2.csv')
 umcsent.df <- data.frame(
    DATE <- as.Date(umcsent$DATE),
-   UMCSENT = as.numeric(umcsent$UMCSENT))
+   UMSCENT = as.numeric(umcsent$UMCSENT))
+
+
 
 unrate = getSymbols('UNRATE',src='FRED', auto.assign = F, from = "1978-01-01" , to = "2020-05-01") 
 unrate.df = data.frame(date=time(unrate), coredata(unrate))
@@ -70,13 +74,13 @@ recessions.trim = subset(recessions.df, Peak >= min(unrate.df$date) )
 Yt = ts(umcsent$UMCSENT, frequency = 12, start = c(1978,1))
 
 # UMCSENT separated by components
-comp = read.csv("UMCSENT_COMPONENTS.csv")
+comp = read.csv("~/Desktop/school/STAT 626/UMCSENT_COMPONENTS.csv")
 comp$DATE = as.Date(paste(comp$Year, comp$Month, "01", sep="-"))
 ```
 
 ```{r}
 # Perform lag 1 differencing
-umcsent.df = data.frame(umcsent.df, LAG1 = c(NA, diff(umcsent$UMCSENT,1)))
+umcsent.df = data.frame(umcsent.df, LAG1 = c(0, diff(umcsent$UMCSENT,1)))
 colnames(umcsent.df)[1] = "DATE"
 
 ggplot(data=umcsent.df) +
@@ -102,11 +106,11 @@ The at first glance the residuals seem to have approximately constant variance. 
 # BC12: business conditions (12 months)
 # BC5: business conditions (5 years)
 # BC: current buying conditions
-comp$PFC.LAG1 = c(NA, diff(comp$Personal.Finance.Current,1))
-comp$PFE.LAG1 = c(NA, diff(comp$Personal.Finance.Expected,1))
-comp$BC12.LAG1 = c(NA, diff(comp$Business.Condition.12.Months,1))
-comp$BC5.LAG1 = c(NA, diff(comp$Business.Condition.5.Years,1))
-comp$BC.LAG1 = c(NA, diff(comp$Buying.Conditions,1))
+comp$PFC.LAG1 = c(0, diff(comp$Personal.Finance.Current,1))
+comp$PFE.LAG1 = c(0, diff(comp$Personal.Finance.Expected,1))
+comp$BC12.LAG1 = c(0, diff(comp$Business.Condition.12.Months,1))
+comp$BC5.LAG1 = c(0, diff(comp$Business.Condition.5.Years,1))
+comp$BC.LAG1 = c(0, diff(comp$Buying.Conditions,1))
 
 # Restructures comp dataframe to allow for use of faceting
 comp.facet = data.frame(DATE=rep(comp$DATE, 5),
@@ -188,6 +192,146 @@ var(comp$BC12.LAG1, na.rm=TRUE)
 var(comp$BC5.LAG1, na.rm=TRUE)
 var(comp$BC.LAG1, na.rm=TRUE)
 ```
+
+
+
+
+```{r}
+
+source('~/Downloads/ARMAroots_RFunctions.R')
+#ACF AND PACF PLOTS
+ggtsdisplay(umcsent.df$LAG1, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Consumer Sentiment")
+ggtsdisplay(comp$PFC.LAG1, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Current Personal Finance")
+ggtsdisplay(comp$PFE.LAG1, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Expected Personal Finance")
+ggtsdisplay(comp$BC12.LAG1, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Business conditions in 12 months")
+ggtsdisplay(comp$BC5.LAG1, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Business Conditions in 5 Years")
+ggtsdisplay(comp$BC.LAG1, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Buying Conditions")
+
+
+```
+
+```{r}
+#combine all the TS
+
+
+dTS = data.frame(umcsent.df$LAG1, comp$PFC.LAG1, comp$PFE.LAG1, comp$BC12.LAG1, comp$BC5.LAG1, comp$BC.LAG1)
+
+```
+
+
+```{r}
+
+n = dim(dTS)[1]
+k = dim(dTS)[2]
+p.max = trunc(12*(n/100)^.25); cat("Maximum lag for m-AIC and m-BIC:", p.max)
+
+dADF = matrix(ncol = 7, nrow = k)
+types = c("none", "none", "none", "none", "none", "none", "none")
+df0 = c(1,1,1,1,1,1)
+
+colnames(dADF) = c("cri value", "adf-aic", "lag-aic", "signif-aic", "adf-bic", "lag-bic", "sign-bic")
+rownames(dADF) = names(dTS)
+
+for(i in 1:k){
+  obj = ur.df(dTS[,i], type = types[i], lag = p.max, selectlags = "AIC");
+  dADF[i,1] = obj@cval[1,2]
+  dADF[i,2] = obj@teststat[1]
+  dADF[i,3] = obj@testreg$df[1] - df0[i]
+  dADF[i,4] = dADF[i,2] < dADF[i,1] #1: Reject Ho
+  obj = ur.df(dTS[,i], type = types[i], lag = p.max, selectlags = "BIC");
+  dADF[i,5] = obj@teststat[1]
+  dADF[i,6] = obj@testreg$df[1] - df0[i]
+  dADF[i,7] = dADF[i,5] < dADF[i,1] #1: Reject Ho
+  
+}
+cat("\nADF tests of differenced series\n"); dADF
+
+
+```
+
+```{r}
+#fitting the TS with AIC
+
+fit1aic = auto.arima(dTS[,1], d = 1, seasonal = F, ic = "aic")
+DF1 = round(log(length(dTS[,1])))
+fit2aic = auto.arima(dTS[,2], d = 1, seasonal = F, ic = "aic")
+DF2 = round(log(length(dTS[,2])))
+fit3aic = auto.arima(dTS[,3], d = 1, seasonal = F, ic = "aic")
+DF3 = round(log(length(dTS[,3])))
+fit4aic = auto.arima(dTS[,4], d = 1, seasonal = F, ic = "aic")
+DF4 = round(log(length(dTS[,4])))
+fit5aic = auto.arima(dTS[,5], d = 1, seasonal = F, ic = "aic")
+DF5 = round(log(length(dTS[,5])))
+fit6aic = auto.arima(dTS[,6], d = 1, seasonal = F, ic = "aic")
+DF6 = round(log(length(dTS[,6])))
+
+#fitting the TS with BIC
+
+fit1bic = auto.arima(dTS[,1], d = 1, seasonal = F, ic = "bic")
+fit2bic = auto.arima(dTS[,2], d = 1, seasonal = F, ic = "bic")
+fit3bic = auto.arima(dTS[,3], d = 1, seasonal = F, ic = "bic")
+fit4bic = auto.arima(dTS[,4], d = 1, seasonal = F, ic = "bic")
+fit5bic = auto.arima(dTS[,5], d = 1, seasonal = F, ic = "bic")
+fit6bic = auto.arima(dTS[,6], d = 1, seasonal = F, ic = "bic")
+
+
+```
+
+```{r}
+cat("\nModel select by the AIC for UMCSENT:\n") 
+fit1aic
+cat("\nModel select by the BIC for UMCSENT:\n") 
+fit1bic
+
+#Both the AIC and BIC picked the model ARIMA(1,1,0) with drift for UMCSENT
+
+cat("\nModel select by the AIC for PFC:\n") 
+fit2aic
+cat("\nModel select by the BIC for PFC:\n") 
+fit2bic
+
+#Both the AIC and BIC picked the model ARIMA(5,1,0) with drift for PFC
+
+cat("\nModel select by the AIC for PFE:\n") 
+fit3aic
+cat("\nModel select by the BIC for PFE:\n") 
+fit3bic
+
+#Both the AIC and BIC picked the model ARIMA(1,1,0) with drift for PFE
+
+cat("\nModel select by the AIC for BC12:\n") 
+fit4aic
+cat("\nModel select by the BIC for BC12:\n") 
+fit4bic
+
+#The AIC picked ARIMA(5,1,0) and the BIC picked ARIMA(4,1,0). Since the lowest AIC is ARIMA(5,1,0), we will choose that model for PFE. 
+
+cat("\nModel select by the AIC for BC5:\n") 
+fit5aic
+cat("\nModel select by the BIC for BC5:\n") 
+fit5bic
+
+cat("\nModel select by the AIC for BC:\n") 
+fit6aic
+cat("\nModel select by the BIC for BC:\n") 
+fit6bic
+
+#Both the AIC and BIC picked the model ARIMA(5,1,0) with drift for BC.
+
+
+```
+
+```{r}
+
+cat("Portmanteau tests of fitted residuals")
+checkresiduals(fit1aic, lag = DF1 + length(fit1aic$model$phi))
+checkresiduals(fit2aic, lag = DF2 + length(fit2aic$model$phi))
+checkresiduals(fit3aic, lag = DF3 + length(fit3aic$model$phi))
+checkresiduals(fit4aic, lag = DF4 + length(fit4aic$model$phi))
+checkresiduals(fit5aic, lag = DF5 + length(fit5aic$model$phi))
+checkresiduals(fit6aic, lag = DF6 + length(fit6aic$model$phi))
+```
+
 
 \begin{align*}
 x\supt{UMCSENT}_t &= x\supt{UMCSENT}_{t-1} + w\supt{UMCSENT}_t&
