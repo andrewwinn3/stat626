@@ -28,7 +28,7 @@ library(urca)
 # Functionally identical to Presentation1.Rmd
 
 # 'UMCSENT2.csv' is the FRED file trimed from the first observation of 1978
-umcsent <- read_csv(file = '~/Downloads/UMCSENT-2.csv')
+umcsent <- read_csv(file = '~/STAT626/stat626/Data/UMCSENT2.csv') # Change path
 umcsent.df <- data.frame(
    DATE <- as.Date(umcsent$DATE),
    UMSCENT = as.numeric(umcsent$UMCSENT))
@@ -74,9 +74,11 @@ recessions.trim = subset(recessions.df, Peak >= min(unrate.df$date) )
 Yt = ts(umcsent$UMCSENT, frequency = 12, start = c(1978,1))
 
 # UMCSENT separated by components
-comp = read.csv("~/Desktop/school/STAT 626/UMCSENT_COMPONENTS.csv")
+comp = read.csv("~/STAT626/stat626/Data/UMCSENT_COMPONENTS.csv") # Change Path
 comp$DATE = as.Date(paste(comp$Year, comp$Month, "01", sep="-"))
 ```
+
+# Investigation of differenced series
 
 ```{r}
 # Perform lag 1 differencing
@@ -156,7 +158,8 @@ aTSA::adf.test(comp$BC.LAG1)
 
 The reasonable conclusions for individual components are essentially the same as for the UMCSENT index as a whole. We have the desired normality and regularity assumptions excpet for some (arguably insignificant) regions of volatility in which noise variance increases slightly. (Note that this seems most extreme in the 'buying conditions' series, so any further investigation should begin there. That is also the series for which the assumption of constant mean had the least evidence, although the evidence is still sufficiently strong.) The Dickey-Fuller tests for non-stationarity all return p-values less than 0.01, so it is reasonable to proceed under the assumptions that the lag 1 difference series are stationary.
 
-\section*{Random walk models}
+# Random walk models
+
 For the lag 1 differenced series, we have already rejected the null hypotheses (at any reasonable $\alpha$-level) that each series is nonstationary. This implies that each of the original, undifferenced time series can be modeled by a random walk with i.i.d. white noise terms. We now wish to determine the presence or absence of any drift or trend.
 
 We previously used some simple linear models as a convenient way of investigating the
@@ -192,14 +195,38 @@ var(comp$BC12.LAG1, na.rm=TRUE)
 var(comp$BC5.LAG1, na.rm=TRUE)
 var(comp$BC.LAG1, na.rm=TRUE)
 ```
+\begin{align*}
+x\supt{UMCSENT}_t &= x\supt{UMCSENT}_{t-1} + w\supt{UMCSENT}_t&
+  w\supt{UMCSENT}_t &\sim N(0, 15.8)\\
+x\supt{PFC}_t &= x\supt{PFC}_{t-1} + w\supt{PFC}_t&
+  w\supt{PFC}_t &\sim N(0, 38.6)\\
+x\supt{PFE}_t &= x\supt{PFE}_{t-1} + w\supt{PFE}_t&
+  w\supt{PFE}_t &\sim N(0, 25.5)\\
+x\supt{BC12}_t &= x\supt{BC12}_{t-1} + w\supt{BC12}_t&
+  w\supt{PBC12}_t &\sim N(0, 117)\\
+x\supt{BC5}_t &= x\supt{BC5}_{t-1} + w\supt{BC5}_t&
+  w\supt{BC5}_t &\sim N(0, 59.7)\\
+x\supt{BC}_t &= x\supt{BC}_{t-1} + w\supt{BC}_t&
+  w\supt{BC}_t &\sim N(0, 58.7)\\
+\end{align*}
+\begin{quote}
+UMCSENT: University of Michigan Consumer Sentiment Index (the primary index)\\
+PFC: Current personal finance conditions\\
+PFE: Expected personal finance conditions (12 months)\\
+BC12: Expected business conditions (12 months)\\
+BC5: Expected business conditions (5 years)\\
+BC: Current buying conditions
+\end{quote}
+
+# Second-order differencing
 
 
-
+# ARMA models
 
 ```{r}
 
-source('~/Downloads/ARMAroots_RFunctions.R')
-#ACF AND PACF PLOTS
+source('~/STAT626/stat626/ARMAroots_RFunctions.R') # Change path
+# ACF AND PACF PLOTS
 ggtsdisplay(umcsent.df$LAG1, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Consumer Sentiment")
 ggtsdisplay(comp$PFC.LAG1, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Current Personal Finance")
 ggtsdisplay(comp$PFE.LAG1, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Expected Personal Finance")
@@ -221,8 +248,8 @@ dTS = data.frame(umcsent.df$LAG1, comp$PFC.LAG1, comp$PFE.LAG1, comp$BC12.LAG1, 
 
 ```{r}
 
-n = dim(dTS)[1]
-k = dim(dTS)[2]
+n = nrow(dTS)
+k = ncol(dTS)
 p.max = trunc(12*(n/100)^.25); cat("Maximum lag for m-AIC and m-BIC:", p.max)
 
 dADF = matrix(ncol = 7, nrow = k)
@@ -333,25 +360,3 @@ checkresiduals(fit6aic, lag = DF6 + length(fit6aic$model$phi))
 ```
 
 
-\begin{align*}
-x\supt{UMCSENT}_t &= x\supt{UMCSENT}_{t-1} + w\supt{UMCSENT}_t&
-  w\supt{UMCSENT}_t &\sim N(0, 15.8)\\
-x\supt{PFC}_t &= x\supt{PFC}_{t-1} + w\supt{PFC}_t&
-  w\supt{PFC}_t &\sim N(0, 38.6)\\
-x\supt{PFE}_t &= x\supt{PFE}_{t-1} + w\supt{PFE}_t&
-  w\supt{PFE}_t &\sim N(0, 25.5)\\
-x\supt{BC12}_t &= x\supt{BC12}_{t-1} + w\supt{BC12}_t&
-  w\supt{PBC12}_t &\sim N(0, 117)\\
-x\supt{BC5}_t &= x\supt{BC5}_{t-1} + w\supt{BC5}_t&
-  w\supt{BC5}_t &\sim N(0, 59.7)\\
-x\supt{BC}_t &= x\supt{BC}_{t-1} + w\supt{BC}_t&
-  w\supt{BC}_t &\sim N(0, 58.7)\\
-\end{align*}
-\begin{quote}
-UMCSENT: University of Michigan Consumer Sentiment Index (the primary index)\\
-PFC: Current personal finance conditions\\
-PFE: Expected personal finance conditions (12 months)\\
-BC12: Expected business conditions (12 months)\\
-BC5: Expected business conditions (5 years)\\
-BC: Current buying conditions
-\end{quote}
