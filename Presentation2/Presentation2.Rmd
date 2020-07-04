@@ -3,7 +3,7 @@ title: 'University of Michigan: Consumer Sentiment (Report 2)'
 author: 'Group 3: Michelle Nguyen, Jerden Daniels, Cassandra Garner, Eli Hymson, Andrew
   Winn'
 output:
-  word_document: default
+#  word_document: default
   pdf_document: default
 header-includes: \usepackage{amsmath}
 ---
@@ -31,7 +31,7 @@ library(urca)
 umcsent <- read_csv(file = '~/STAT626/stat626/Data/UMCSENT2.csv') # Change path
 umcsent.df <- data.frame(
    DATE <- as.Date(umcsent$DATE),
-   UMSCENT = as.numeric(umcsent$UMCSENT))
+   UMCSENT = as.numeric(umcsent$UMCSENT))
 
 
 
@@ -218,9 +218,6 @@ BC5: Expected business conditions (5 years)\\
 BC: Current buying conditions
 \end{quote}
 
-# Second-order differencing
-
-
 # ARMA models
 
 ```{r}
@@ -359,4 +356,137 @@ checkresiduals(fit5aic, lag = DF5 + length(fit5aic$model$phi))
 checkresiduals(fit6aic, lag = DF6 + length(fit6aic$model$phi))
 ```
 
+# Second-order differencing
+We now repeat the same processes as before using second-order difference series.
+
+```{r}
+# A data frame of all second-order difference series
+DIFF2 = data.frame(
+      UMCSENT = c(NA,NA, diff(umcsent.df$UMCSENT, 2)),
+      PFC = c(NA,NA, diff(comp$Personal.Finance.Current, 2)),
+      PFE = c(NA,NA, diff(comp$Personal.Finance.Expected, 2)),
+      BC12 = c(NA,NA, diff(comp$Business.Condition.12.Months, 2)),
+      BC5 = c(NA,NA, diff(comp$Business.Condition.5.Years, 2)),
+      BC = c(NA,NA, diff(comp$Buying.Conditions, 2))
+)
+```
+
+```{r}
+# ACF AND PACF PLOTS
+ggtsdisplay(DIFF2$UMCSENT, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Second-Order Difference Series of Consumer Sentiment")
+ggtsdisplay(DIFF2$PFC, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Second-Order Difference Series of Current Personal Finance")
+ggtsdisplay(DIFF2$PFE, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Second-Order Difference Series of Expected Personal Finance")
+ggtsdisplay(DIFF2$BC12, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Second-Order Difference Series of Business conditions in 12 months")
+ggtsdisplay(DIFF2$BC5, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Second-Order Difference Series of Business Conditions in 5 Years")
+ggtsdisplay(DIFF2$BC, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Second-Order Difference Series of Buying Conditions")
+```
+
+```{r}
+
+n = nrow(DIFF2)
+k = ncol(DIFF2)
+p.max = trunc(12*(n/100)^.25); cat("Maximum lag for m-AIC and m-BIC:", p.max)
+
+DIFF2.dADF = matrix(ncol = 7, nrow = k)
+types = c("none", "none", "none", "none", "none", "none", "none")
+df0 = c(1,1,1,1,1,1)
+
+colnames(DIFF2.dADF) = c("cri value", "adf-aic", "lag-aic", "signif-aic", "adf-bic", "lag-bic", "sign-bic")
+rownames(DIFF2.dADF) = names(DIFF2)
+
+for(i in 1:k){
+  obj = ur.df(DIFF2[-(1:2),i], type = types[i], lag = p.max, selectlags = "AIC");
+  DIFF2.dADF[i,1] = obj@cval[1,2]
+  DIFF2.dADF[i,2] = obj@teststat[1]
+  DIFF2.dADF[i,3] = obj@testreg$df[1] - df0[i]
+  DIFF2.dADF[i,4] = DIFF2.dADF[i,2] < DIFF2.dADF[i,1] #1: Reject Ho
+  obj = ur.df(DIFF2[-(1:2),i], type = types[i], lag = p.max, selectlags = "BIC");
+  DIFF2.dADF[i,5] = obj@teststat[1]
+  DIFF2.dADF[i,6] = obj@testreg$df[1] - df0[i]
+  DIFF2.dADF[i,7] = DIFF2.dADF[i,5] < DIFF2.dADF[i,1] #1: Reject Ho
+  
+}
+cat("\nADF tests of differenced series\n"); DIFF2.dADF
+```
+
+```{r}
+#fitting the TS with AIC
+
+DIFF2.fit1aic = auto.arima(DIFF2[,1], d = 1, seasonal = F, ic = "aic")
+DIFF2.DF1 = round(log(length(DIFF2[,1])))
+DIFF2.fit2aic = auto.arima(DIFF2[,2], d = 1, seasonal = F, ic = "aic")
+DIFF2.DF2 = round(log(length(DIFF2[,2])))
+DIFF2.fit3aic = auto.arima(DIFF2[,3], d = 1, seasonal = F, ic = "aic")
+DIFF2.DF3 = round(log(length(DIFF2[,3])))
+DIFF2.fit4aic = auto.arima(DIFF2[,4], d = 1, seasonal = F, ic = "aic")
+DIFF2.DF4 = round(log(length(DIFF2[,4])))
+DIFF2.fit5aic = auto.arima(DIFF2[,5], d = 1, seasonal = F, ic = "aic")
+DIFF2.DF5 = round(log(length(DIFF2[,5])))
+DIFF2.fit6aic = auto.arima(DIFF2[,6], d = 1, seasonal = F, ic = "aic")
+DIFF2.DF6 = round(log(length(DIFF2[,6])))
+
+#fitting the TS with BIC
+
+DIFF2.fit1bic = auto.arima(DIFF2[,1], d = 1, seasonal = F, ic = "bic")
+DIFF2.fit2bic = auto.arima(DIFF2[,2], d = 1, seasonal = F, ic = "bic")
+DIFF2.fit3bic = auto.arima(DIFF2[,3], d = 1, seasonal = F, ic = "bic")
+DIFF2.fit4bic = auto.arima(DIFF2[,4], d = 1, seasonal = F, ic = "bic")
+DIFF2.fit5bic = auto.arima(DIFF2[,5], d = 1, seasonal = F, ic = "bic")
+DIFF2.fit6bic = auto.arima(DIFF2[,6], d = 1, seasonal = F, ic = "bic")
+```
+
+```{r}
+cat("\nModel select by the AIC for UMCSENT:\n") 
+DIFF2.fit1aic
+cat("\nModel select by the BIC for UMCSENT:\n") 
+DIFF2.fit1bic
+
+#Both the AIC and BIC picked the model ARIMA(1,1,0) with drift for UMCSENT
+
+cat("\nModel select by the AIC for PFC:\n") 
+DIFF2.fit2aic
+cat("\nModel select by the BIC for PFC:\n") 
+DIFF2.fit2bic
+
+#Both the AIC and BIC picked the model ARIMA(5,1,0) with drift for PFC
+
+cat("\nModel select by the AIC for PFE:\n") 
+DIFF2.fit3aic
+cat("\nModel select by the BIC for PFE:\n") 
+DIFF2.fit3bic
+
+#Both the AIC and BIC picked the model ARIMA(1,1,0) with drift for PFE
+
+cat("\nModel select by the AIC for BC12:\n") 
+DIFF2.fit4aic
+cat("\nModel select by the BIC for BC12:\n") 
+DIFF2.fit4bic
+
+#The AIC picked ARIMA(5,1,0) and the BIC picked ARIMA(4,1,0). Since the lowest AIC is ARIMA(5,1,0), we will choose that model for PFE. 
+
+cat("\nModel select by the AIC for BC5:\n") 
+DIFF2.fit5aic
+cat("\nModel select by the BIC for BC5:\n") 
+DIFF2.fit5bic
+
+cat("\nModel select by the AIC for BC:\n") 
+DIFF2.fit6aic
+cat("\nModel select by the BIC for BC:\n") 
+DIFF2.fit6bic
+
+#Both the AIC and BIC picked the model ARIMA(5,1,0) with drift for BC.
+
+
+```
+
+```{r}
+
+cat("Portmanteau tests of DIFF2.fitted residuals")
+checkresiduals(DIFF2.fit1aic, lag = DIFF2.DF1 + length(DIFF2.fit1aic$model$phi))
+checkresiduals(DIFF2.fit2aic, lag = DIFF2.DF2 + length(DIFF2.fit2aic$model$phi))
+checkresiduals(DIFF2.fit3aic, lag = DIFF2.DF3 + length(DIFF2.fit3aic$model$phi))
+checkresiduals(DIFF2.fit4aic, lag = DIFF2.DF4 + length(DIFF2.fit4aic$model$phi))
+checkresiduals(DIFF2.fit5aic, lag = DIFF2.DF5 + length(DIFF2.fit5aic$model$phi))
+checkresiduals(DIFF2.fit6aic, lag = DIFF2.DF6 + length(DIFF2.fit6aic$model$phi))
+```
 
