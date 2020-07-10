@@ -1,0 +1,305 @@
+---
+title: "University of Michigan: Consumer Sentiment"
+author: "Group 3: Michelle Nguyen, Jerden Daniels, Cassandra Garner, Eli Hymson, Andrew Winn"
+output: word_document
+---
+
+```{r}
+library(tidyverse)
+library(readr)
+library(TSstudio)
+library(xts)
+library(quantmod)
+library(forecast)
+library(tis)
+library(gridExtra)
+library(timeDate)
+library(ggplot2)
+library(urca)
+library(alr3)
+library(ggcorrplot)
+library(tidyr)
+library(dplyr)
+```
+
+```{r}
+umscent = data(Michigan_CS)
+ts_info(Michigan_CS)
+
+```
+
+```{r}
+umcsent <- read_csv(file = '~/Downloads/UMCSENT-2.csv')
+umcsent.df <- data.frame(
+   DATE <- as.Date(umcsent$DATE),
+   UMSCENT = as.numeric(umcsent$UMCSENT))
+
+
+ UMSCENT = as.numeric(umcsent$UMCSENT)
+ DATE <- as.Date(umcsent$DATE)
+```
+
+
+```{r}
+WTI <- read_csv(file = '~/Downloads/WTISPLC.csv')
+WTI.df <- data.frame(
+   WTI.date <- as.Date(WTI$DATE),
+   WTI = as.numeric(WTI$WTISPLC))
+
+   WTI.date <- as.Date(WTI$DATE)[-1]
+   WTI = as.numeric(WTI$WTISPLC)[-1]
+   
+```
+```{r}
+unrate <- read_csv(file = '~/Downloads/UNRATE.csv')
+unrate.df <- data.frame(
+   unrate.date <- as.Date(unrate$DATE),
+   unrate = as.numeric(unrate$UNRATE))
+
+   unrate.date <- as.Date(unrate$DATE)[-1]
+   unrate = as.numeric(unrate$UNRATE)[-1]
+```
+
+
+
+```{r}
+unrate = getSymbols('UNRATE',src='FRED', auto.assign = F, from = "1978-01-01" , to = "2020-05-01") 
+unrate.df = data.frame(date=time(unrate), coredata(unrate))
+recessions.df = read.table(textConnection(
+"Peak, Trough
+1873-10-01, 1879-03-01
+1882-03-01, 1885-05-01
+1887-03-01, 1888-04-01
+1890-07-01, 1891-05-01
+1893-01-01, 1894-06-01
+1895-12-01, 1897-06-01
+1899-06-01, 1900-12-01
+1902-09-01, 1904-08-01
+1907-05-01, 1908-06-01
+1910-01-01, 1912-01-01
+1913-01-01, 1914-12-01
+1918-08-01, 1919-03-01
+1920-01-01, 1921-07-01
+1923-05-01, 1924-07-01
+1926-10-01, 1927-11-01
+1929-08-01, 1933-03-01
+1937-05-01, 1938-06-01
+1945-02-01, 1945-10-01
+1948-11-01, 1949-10-01
+1953-07-01, 1954-05-01
+1957-08-01, 1958-04-01
+1960-04-01, 1961-02-01
+1969-12-01, 1970-11-01
+1973-11-01, 1975-03-01
+1980-01-01, 1980-07-01
+1981-07-01, 1982-11-01
+1990-07-01, 1991-03-01
+2001-03-01, 2001-11-01
+2007-12-01, 2009-06-01"), sep=',',
+colClasses=c('Date', 'Date'), header=TRUE)
+
+recessions.trim = subset(recessions.df, Peak >= min(unrate.df$date) )
+```
+
+
+
+
+```{r}
+Yt = ts(umcsent$UMCSENT, frequency = 12, start = c(1978,1))
+```
+
+
+```{r}
+ggtsdisplay(UMSCENT, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Consumer Sentiment")
+
+
+```
+
+
+
+```{r}
+#ADF Test for untransformed data.
+
+#We apply the ADF test with constant to the UMCSENT series. Based 
+n = 508
+p.max = trunc(12*(n/100)^.25); cat("Maximum lag for m-AIC and m-BIC:", p.max)
+
+d_ADF = matrix(ncol = 7, nrow = 1)
+colnames(d_ADF) = c("cri value", "adf-aic", "lag-aic", "signif-aic", "adf-bic", "lag-bic", "sign-bic")
+rownames(d_ADF) = c("UMCSENT")
+
+for(i in 1:1){
+  obj = ur.df(UMSCENT, type = "drift", lag = p.max, selectlags = "AIC");
+  d_ADF[i,1] = obj@cval[1,2]
+  d_ADF[i,2] = obj@teststat[1]
+  d_ADF[i,3] = obj@testreg$df[1] - 2
+  d_ADF[i,4] = d_ADF[i,2] < d_ADF[i,1] #1: Reject Ho
+  obj = ur.df(UMSCENT, type = "drift", lag = p.max, selectlags = "BIC");
+  d_ADF[i,5] = obj@teststat[1]
+  d_ADF[i,6] = obj@testreg$df[1] - 2
+  d_ADF[i,7] = d_ADF[i,5] < d_ADF[i,1] #1: Reject Ho
+  
+}
+cat("\n ADF tests of series\n"); d_ADF
+
+#With the modified BIC, the ADF is significant against H0 for UMSCENT but not for AIC. We do not accept the null hypothesis that UMSCENT is I(1) process. Which indicates that this series is non-stationary. 
+```
+
+```{r}
+ggtsdisplay(umcsent_diff,xlab = "Time", ylab = "index 1966:Q1 = 100", main= " Differenced Consumer Sentiment")
+```
+
+
+
+```{r}
+#ADF Test with the differenced data 
+#We apply the ADF test without a constant to the UMCSENT series. Based 
+
+#UMSCENT transformed
+source('~/Downloads/ARMAroots_RFunctions.R')
+umcsent_diff = diff(UMSCENT)
+umcsent_difflog = diff(log(UMSCENT))
+
+p.max = trunc(12*(n/100)^.25); cat("Maximum lag for m-AIC and m-BIC:", p.max)
+
+d_ADF = matrix(ncol = 7, nrow = 1)
+colnames(d_ADF) = c("cri value", "adf-aic", "lag-aic", "signif-aic", "adf-bic", "lag-bic", "sign-bic")
+rownames(d_ADF) = c("UMCSENT")
+
+for(i in 1:1){
+  obj = ur.df(umcsent_diff, type = "none", lag = p.max, selectlags = "AIC");
+  d_ADF[i,1] = obj@cval[1,2]
+  d_ADF[i,2] = obj@teststat[1]
+  d_ADF[i,3] = obj@testreg$df[1] - 1
+  d_ADF[i,4] = d_ADF[i,2] < d_ADF[i,1] #1: Reject Ho
+  obj = ur.df(umcsent_diff, type = "none", lag = p.max, selectlags = "BIC");
+  d_ADF[i,5] = obj@teststat[1]
+  d_ADF[i,6] = obj@testreg$df[1] - 1
+  d_ADF[i,7] = d_ADF[i,5] < d_ADF[i,1] #1: Reject Ho
+  
+}
+cat("\n ADF tests of series\n"); d_ADF
+
+#With the modified AIC and BIC, the ADF is significant against H0 for UMSCENT. We accept accept the null hypothesis that UMSCENT is a I(1) process, indicating this series is stationary after we differenced the data.
+```
+
+
+
+
+```{r}
+
+
+#diff data 
+fitaic = auto.arima(umcsent_diff, d = 0, seasonal = F, ic = "aic")
+DF1 = round(log(length(umcsent_diff)))
+fitbic = auto.arima(umcsent_diff, d = 0, seasonal = F, ic = "bic")
+fitaic
+fitbic
+autoplot_roots(fitaic)
+checkresiduals(fitaic, lag = DF1 + length(fitaic$model$phi))
+ggtsdisplay(umcsent_diff, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Differenced Consumer Sentiment")
+
+
+#The AIC chooses ARIMA(1,0,2) with zero mean and BIC chooses ARIMA(0,0,0) with zero mean. The AIC is smaller for ARIMA(1,0,2) and the BIC is smaller for the ARIMA(0,0,0), we choose AIC since the BIC tends to penalize the complex models more and cause the model to be underfit.
+#After checking the residuals, the Ljung Box Test's pvalue = 0.5196. We fail to reject the null hypothesis at the 0.05 level that autocorrelations up to lag 7 equal 0 and conclude the data values are significantly random and independent up to lag 7.
+
+
+```
+
+```{r}
+#diff log data 
+fitaic2 = auto.arima(umcsent_difflog, d = 0, seasonal = F, ic = "aic")
+DF2 = round(log(length(umcsent_difflog)))
+fitbic2 = auto.arima(umcsent_difflog, d = 0, seasonal = F, ic = "bic")
+fitaic2
+fitbic2
+autoplot_roots(fitaic2)
+checkresiduals(fitaic2, lag = DF2 + length(fitaic2$model$phi))
+ggtsdisplay(umcsent_difflog, xlab = "Time", ylab = "index 1966:Q1 = 100", main= "Differenced Log Consumer Sentiment")
+
+
+#The AIC chooses ARIMA(0,0,3) with zero mean and BIC chooses ARIMA(0,0,0) with zero mean. The AIC and BIC is smaller for ARIMA(1,0,2) so we choose ARIMA(0,0,3)
+#After checking the residuals, the Ljung Box Test's pvalue = 0.2876. We fail to reject the null hypothesis at the 0.05 level that autocorrelations up to lag 6 equal 0 and conclude the data values are significantly random and independent up to lag 6.
+```
+
+
+
+```{r}
+
+#Yule Walker and OLS Estimation 
+ar.mle(UMSCENT, aic = F, order.max = 5)
+ar.mle(umcsent_diff, aic = F, order.max = 5)
+ar.mle(umcsent_difflog, aic = F, order.max = 5)
+
+```
+
+```{r}
+
+tsplot(UMSCENT~DATE, type = "l", main = "Trend of monthly consumer sentiment", xlab = "Time", ylab = "Consumer Sentiment", col = "red")
+meanUM = mean(UMSCENT)
+lines(lowess(UMSCENT~DATE, f=.2), col = "black")
+abline(h=meanUM, col = "blue")
+
+#We use the Loess smoothing to take a look at the general trend of the consumer sentiment.
+#From the smoothing plot, The 1980's show the consumer is lowest. Around the 1990's there is an increasing trend around the dot com bubble of 1995-2001 and around 2010, the consumer sentiment is lowest (around the financial crisis). Around 2000, the consumer sentiment is highest, but they all trend to the mean value. 
+
+```
+```{r}
+library(quantmod)
+library(rugarch)
+library(downloader)
+
+#Get data for the covariates 
+
+SP <- getSymbols("^GSPC", from = "1978-01-01" , to = "2020-06-01")
+SP <- monthlyReturn(Ad(get("GSPC")), type = "log")[-1]
+SP <- as.numeric(Rt)
+
+
+```
+```{r}
+all = data.frame(UMSCENT, SP, WTI, unrate)
+
+#Plotting the trends for all 4 time series
+plot.ts(all, type = "l", main = "Trends", xlab = "Time", ylab = "Consumer Sentiment", col = "blue")
+
+```
+
+
+```{r}
+
+#Correlation Plots
+r <- cor(all, use="complete.obs")
+ggcorrplot(r)
+ggcorrplot(r, 
+           hc.order = TRUE, 
+           type = "lower",
+           lab = TRUE)
+
+#UMCSENT is negatively correlated to WTI, unemployment rate, and S&P 500
+```
+
+
+
+```{r}
+
+source('~/Downloads/FM_Functions.R')
+n = 508
+fit1 = lm(SP~ UMSCENT )
+plot(fit)
+mmps(fit)
+
+```
+
+```{r}
+all2 = cbind(UMSCENT, unrate, WTI, SP)
+ts.plot(all2, lwd=2, col=c(1, 2, 3, 4), xlab = "Time", main = "Covariates" )
+
+```
+```{r}
+ggtsdisplay(UMSCENT, main = "Consumer Sentiment", col = "red")
+ggtsdisplay(unrate, main = "Unemployment Rate", col = "red")
+ggtsdisplay(WTI, main = "Crude Oil Prices", col = "red")
+ggtsdisplay(SP, main = "S&P 500 ")
+```
+
