@@ -1,18 +1,4 @@
 library(tidyverse)
-library(readr)
-library(TSstudio)
-library(xts)
-library(quantmod)
-library(forecast)
-library(tis)
-library(gridExtra)
-library(timeDate)
-library(ggplot2)
-library(urca)
-library(alr3)
-library(ggcorrplot)
-library(tidyr)
-library(dplyr)
 library(astsa)
 
 # Some datasets must be trimmed to fit the date range 1978-01-01/2020-04-01
