@@ -1,5 +1,6 @@
 library(tidyverse)
 library(astsa)
+library(forecast)
 
 # Some datasets must be trimmed to fit the date range 1978-01-01/2020-04-01
 full = data.frame(
