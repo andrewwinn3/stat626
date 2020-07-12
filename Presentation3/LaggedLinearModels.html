@@ -434,7 +434,9 @@ source(url(&#39;https://raw.githubusercontent.com/andrewwinn3/stat626/master/Dat
 ## 
 ##     gas</code></pre>
 <pre class="r"><code>attach(full)</code></pre>
-<p>SP.log: ARIMA(0,1,0) model with drift and <span class="math inline">\(\lambda = 0.041\)</span> B-C transformation.</p>
+<div id="sp" class="section level3">
+<h3>SP:</h3>
+<p>ARIMA(0,1,0) model with drift and <span class="math inline">\(\lambda = 0.041\)</span> B-C transformation.</p>
 <pre class="r"><code>lm.SP = auto.arima(SP, lambda=&#39;auto&#39;, seasonal=FALSE, stepwise=FALSE)
 lm.SP</code></pre>
 <pre><code>## Series: SP 
@@ -457,7 +459,10 @@ lm.SP</code></pre>
 ## Q* = 10.392, df = 9, p-value = 0.3197
 ## 
 ## Model df: 1.   Total lags used: 10</code></pre>
-<p>DGS1: none of the transformations provide stationarity. Some high-order residual autocorrelations end up being significant.</p>
+</div>
+<div id="dgs1" class="section level3">
+<h3>DGS1:</h3>
+<p>None of the transformations provide stationarity. Some high-order residual autocorrelations end up being significant.</p>
 <pre class="r"><code>lm.DGS1.log = auto.arima(DGS1.log.diff3[-(1:3)], max.p=10, max.q=10, lambda=&quot;auto&quot;, seasonal=FALSE, stepwise=FALSE)
 lm.DGS1.log</code></pre>
 <pre><code>## Series: DGS1.log.diff3[-(1:3)] 
@@ -480,7 +485,10 @@ lm.DGS1.log</code></pre>
 ## Q* = 15.294, df = 4, p-value = 0.004129
 ## 
 ## Model df: 6.   Total lags used: 10</code></pre>
-<p>UNRATE: ARIMA(1,1,1) model with <span class="math inline">\(\lambda = -1.000\)</span> B-C transformation.</p>
+</div>
+<div id="unrate" class="section level3">
+<h3>UNRATE:</h3>
+<p>ARIMA(1,1,1) model with <span class="math inline">\(\lambda = -1.000\)</span> B-C transformation.</p>
 <pre class="r"><code>lm.UNRATE = auto.arima(UNRATE, lambda=&quot;auto&quot;, seasonal=FALSE, stepwise=FALSE)
 lm.UNRATE</code></pre>
 <pre><code>## Series: UNRATE 
@@ -503,7 +511,10 @@ lm.UNRATE</code></pre>
 ## Q* = 7.1454, df = 8, p-value = 0.521
 ## 
 ## Model df: 2.   Total lags used: 10</code></pre>
-<p>WTI: ARIMA(1,1,0) model with drift and <span class="math inline">\(\lambda = 0.221\)</span> B-C transformation.</p>
+</div>
+<div id="wti" class="section level3">
+<h3>WTI:</h3>
+<p>ARIMA(1,1,0) model with drift and <span class="math inline">\(\lambda = 0.221\)</span> B-C transformation.</p>
 <pre class="r"><code>lm.WTI = auto.arima(WTI, lambda=&quot;auto&quot;, seasonal=FALSE, stepwise=FALSE)
 lm.WTI</code></pre>
 <pre><code>## Series: WTI 
@@ -526,6 +537,7 @@ lm.WTI</code></pre>
 ## Q* = 7.5618, df = 9, p-value = 0.5788
 ## 
 ## Model df: 1.   Total lags used: 10</code></pre>
+</div>
 
 
 

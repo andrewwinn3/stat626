@@ -1,5 +1,5 @@
 ---
-  title: 'University of Michigan: Consumer Sentiment (Lagged Linear Models)'
+title: 'University of Michigan: Consumer Sentiment (Lagged Linear Models)'
 author: 'Group 3: Michelle Nguyen, Jerden Daniels, Cassandra Garner, Eli Hymson, Andrew
   Winn'
 output:
@@ -17,28 +17,32 @@ source(url('https://raw.githubusercontent.com/andrewwinn3/stat626/master/Data/Se
 attach(full)
 ```
 
-SP.log: ARIMA(0,1,0) model with drift and $\lambda = 0.041$ B-C transformation.
+### SP:
+ARIMA(0,1,0) model with drift and $\lambda = 0.041$ B-C transformation.
 ```{r}
 lm.SP = auto.arima(SP, lambda='auto', seasonal=FALSE, stepwise=FALSE)
 lm.SP
 checkresiduals(lm.SP)
 ```
 
-DGS1: none of the transformations provide stationarity. Some high-order residual autocorrelations end up being significant.
+### DGS1:
+None of the transformations provide stationarity. Some high-order residual autocorrelations end up being significant.
 ```{r}
 lm.DGS1.log = auto.arima(DGS1.log.diff3[-(1:3)], max.p=10, max.q=10, lambda="auto", seasonal=FALSE, stepwise=FALSE)
 lm.DGS1.log
 checkresiduals(lm.DGS1.log)
 ```
 
-UNRATE: ARIMA(1,1,1) model with $\lambda = -1.000$ B-C transformation.
+### UNRATE:
+ARIMA(1,1,1) model with $\lambda = -1.000$ B-C transformation.
 ```{r}
 lm.UNRATE = auto.arima(UNRATE, lambda="auto", seasonal=FALSE, stepwise=FALSE)
 lm.UNRATE
 checkresiduals(lm.UNRATE)
 ```
 
-WTI: ARIMA(1,1,0) model with drift and $\lambda = 0.221$ B-C transformation.
+### WTI:
+ARIMA(1,1,0) model with drift and $\lambda = 0.221$ B-C transformation.
 ```{r}
 lm.WTI = auto.arima(WTI, lambda="auto", seasonal=FALSE, stepwise=FALSE)
 lm.WTI
