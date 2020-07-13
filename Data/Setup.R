@@ -18,6 +18,8 @@ full = data.frame(
   SP = read.csv(url('https://raw.githubusercontent.com/andrewwinn3/stat626/master/Data/SP.csv'))$Adj.Close
 )
 
+# Box-cox transformation recommended by auto.arima
+full$UMCSENT.stab = c(NA, diff(BoxCox(full$UMCSENT, 2)))
 
 # All DGS1 series are being left in for now, since a satisfactory transformation
 #    has not been found.
@@ -37,8 +39,9 @@ full$SP.stab = c(NA, diff(BoxCox(full$SP, 0.041)) - 0.0089)
 full$UNRATE.stab = c(NA, diff(BoxCox(full$UNRATE, -1)))
 full$WTI.stab = c(NA, diff(BoxCox(full$WTI, 0.221)))
 
-full$SP.stab.lag2 = lag(full$SP.stab, 2)
-full$SP.stab.lag10 = lag(full$SP.stab,10)
-full$UNRATE.stab.lag10 = lag(full$UNRATE.stab, 10)
+full$SP.stab.lag1 = lag(full$SP.stab, 1)
+full$SP.stab.lag3 = lag(full$SP.stab,3)
+full$UNRATE.stab.lead2 = lead(full$UNRATE.stab,2)
+full$WTI.stab.lag1 = lag(full$WTI.stab,1)
 
 full.train = full[12:498,]

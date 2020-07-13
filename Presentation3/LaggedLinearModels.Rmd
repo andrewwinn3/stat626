@@ -14,12 +14,19 @@ source(url('https://raw.githubusercontent.com/andrewwinn3/stat626/master/Data/Se
 attach(full.train)
 ```
 
-# Repeat model for UMCSENT
+# ARIMA for UMCSENT
+This is mostly a duplicate of what we did before. However, we need the UMCSENT series to be stationary, and we will also employ a model which combines the predicted values from the ARIMA UMCSENT model with the covariate series.
 ```{r}
 lm.UMCSENT = auto.arima(UMCSENT, lambda='auto', seasonal=FALSE, stepwise = FALSE)
 lm.UMCSENT
 checkresiduals(lm.UMCSENT)
 UMCSENT.fitted = fitted(lm.UMCSENT)
+
+# I don't know why the a (2,0,2) model isn't recommended here, since UMCSENT.stab is produced by the recommendationded transformation in the previous code, being a (2,1,2) model with $\lambda = 2$ Box-Cox transformation.
+lm.UMCSENT.stab = auto.arima(UMCSENT.stab, seasonal=FALSE, stepwise=FALSE)
+lm.UMCSENT.stab
+checkresiduals(lm.UMCSENT.stab)
+UMCSENT.stab.fitted = fitted(lm.UMCSENT.stab)
 ```
 
 
@@ -59,50 +66,89 @@ checkresiduals(lm.WTI)
 
 # Examination of cross-correlation
 ```{r}
-detach(full)
-attach(full.train)
 # Stabilized models are denoted by *.stab
-ccf(UMCSENT, SP.stab)
-ccf(UMCSENT, UNRATE.stab)
-ccf(UMCSENT, WTI.stab)
+ccf(UMCSENT.stab, SP.stab)
+ccf(UMCSENT.stab, UNRATE.stab)
+ccf(UMCSENT.stab, WTI.stab)
 ```
 
+# Lagged regression models
+These models are based solely on the regressors, rather than any autoregression.
 ```{r}
-lm.full = lm(UMCSENT ~ SP.stab + SP.stab.lag2 + SP.stab.lag10 + UNRATE.stab + UNRATE.stab.lag10,
-            data = full.train)
-summary(lm.full)
-
-lm.leaps = regsubsets(UMCSENT ~ UMCSENT.fitted + SP.stab + SP.stab.lag2 +
-                    SP.stab.lag10 + UNRATE.stab + UNRATE.stab.lag10, data = full.train)
+lm.leaps = regsubsets(UMCSENT.stab ~ SP.stab.lag1 + SP.stab.lag3 +
+                        UNRATE.stab.lead2 + WTI.stab.lag1, data = full.train)
 summary(lm.leaps)
 
-lm.leaps.1 = lm(UMCSENT ~ UMCSENT.fitted)
-lm.leaps.2 = lm(UMCSENT ~ UMCSENT.fitted + SP.stab)
-lm.leaps.3 = lm(UMCSENT ~ UMCSENT.fitted + SP.stab + SP.stab.lag2)
-lm.leaps.4 = lm(UMCSENT ~ UMCSENT.fitted + SP.stab + SP.stab.lag2 + UNRATE.stab.lag10)
-lm.leaps.5 = lm(UMCSENT ~ UMCSENT.fitted + SP.stab + SP.stab.lag2 + UNRATE.stab +
-                  SP.stab.lag10)
-lm.leaps.6 = lm(UMCSENT ~ UMCSENT.fitted + SP.stab + SP.stab.lag2 + SP.stab.lag10 + 
-                  UNRATE.stab + SP.stab.lag10)
+lm.leaps.1 = lm(UMCSENT.stab ~ SP.stab.lag1)
+lm.leaps.2 = lm(UMCSENT.stab ~ SP.stab.lag1 + WTI.stab.lag1)
+lm.leaps.3 = lm(UMCSENT.stab ~ SP.stab.lag1 + WTI.stab.lag1 + UNRATE.stab.lead2)
+lm.leaps.4 = lm(UMCSENT.stab ~ SP.stab.lag1 + WTI.stab.lag1 + UNRATE.stab.lead2 + 
+                  SP.stab.lag3)
 
 lm.leaps.AIC = c(
   AIC(lm.leaps.1),
   AIC(lm.leaps.2),
   AIC(lm.leaps.3),
-  AIC(lm.leaps.4),
-  AIC(lm.leaps.5),
-  AIC(lm.leaps.6)
+  AIC(lm.leaps.4)
 )
 lm.leaps.BIC = c(
   BIC(lm.leaps.1),
   BIC(lm.leaps.2),
   BIC(lm.leaps.3),
-  BIC(lm.leaps.4),
-  BIC(lm.leaps.5),
-  BIC(lm.leaps.6)
+  BIC(lm.leaps.4)
 )
 
 summary(lm.leaps.1)
+summary(lm.leaps.2)
+summary(lm.leaps.3)
 summary(lm.leaps.4)
+
+cat('\nAIC for 1-4 variable models\n', lm.leaps.AIC)
+cat('\nBIC for 1-4 variable models\n', lm.leaps.BIC)
+cat('\nI recommend four-variable model.')
+
+plot(lm.leaps.4)
 ```
 
+We now consider some models which utilize the fitted values from the UMCSENT ARIMA model investigated previously.
+
+```{r}
+lm.leaps.wFit = regsubsets(UMCSENT.stab ~ UMCSENT.stab.fitted + SP.stab.lag1 + SP.stab.lag3 +
+                        UNRATE.stab.lead2 + WTI.stab.lag1, data = full.train)
+summary(lm.leaps.wFit)
+
+lm.leaps.wFit.1 = lm(UMCSENT.stab ~ SP.stab.lag1)
+lm.leaps.wFit.2 = lm(UMCSENT.stab ~ UMCSENT.stab.fitted + SP.stab.lag1)
+lm.leaps.wFit.3 = lm(UMCSENT.stab ~ UMCSENT.stab.fitted + SP.stab.lag1 + WTI.stab.lag1)
+lm.leaps.wFit.4 = lm(UMCSENT.stab ~ UMCSENT.stab.fitted + SP.stab.lag1 + WTI.stab.lag1 +
+                  UNRATE.stab.lead2)
+lm.leaps.wFit.5 = lm(UMCSENT.stab ~ UMCSENT.stab.fitted + SP.stab.lag1 + WTI.stab.lag1 +
+                  UNRATE.stab.lead2 + SP.stab.lag3)
+
+lm.leaps.wFit.AIC = c(
+  AIC(lm.leaps.wFit.1),
+  AIC(lm.leaps.wFit.2),
+  AIC(lm.leaps.wFit.3),
+  AIC(lm.leaps.wFit.4),
+  AIC(lm.leaps.wFit.5)
+)
+lm.leaps.wFit.BIC = c(
+  BIC(lm.leaps.wFit.1),
+  BIC(lm.leaps.wFit.2),
+  BIC(lm.leaps.wFit.3),
+  BIC(lm.leaps.wFit.4),
+  BIC(lm.leaps.wFit.5)
+)
+
+summary(lm.leaps.wFit.1)
+summary(lm.leaps.wFit.2)
+summary(lm.leaps.wFit.3)
+summary(lm.leaps.wFit.4)
+summary(lm.leaps.wFit.5)
+
+cat('\nAIC for 1-4 variable models\n', lm.leaps.wFit.AIC)
+cat('\nBIC for 1-4 variable models\n', lm.leaps.wFit.BIC)
+cat('\nThe four-variable model is recommended.')
+
+plot(lm.leaps.wFit.4)
+```
