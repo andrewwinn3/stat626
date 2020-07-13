@@ -1,6 +1,7 @@
 library(tidyverse)
 library(astsa)
 library(forecast)
+library(leaps)
 
 # Some datasets must be trimmed to fit the date range 1978-01-01/2020-04-01
 full = data.frame(
@@ -20,10 +21,6 @@ full = data.frame(
 
 # All DGS1 series are being left in for now, since a satisfactory transformation
 #    has not been found.
-full$SP.diff1 = c(0,diff(full$SP))
-full$SP.log = log(full$SP)
-full$SP.log.diff1 = c(0,diff(full$SP.log))
-
 full$DGS1.log = log(full$DGS1)
 full$DGS1.log.diff1 = c(0,diff(full$DGS1.log))
 full$DGS1.sqrt = sqrt(full$DGS1)
@@ -33,5 +30,15 @@ full$DGS1.diff2 = c(0,0,diff(full$DGS1, 2))
 full$DGS1.diff1 = c(0,0, diff(full$DGS1, 2))
 full$DGS1.log.diff3 = c(0,0,0,diff(full$DGS1.log, 3))
 
-full$UNRATE.log = log(full$UNRATE)
+# Stabilized series:
+#    series are transformed by B-C procedure and are
+#    stationary with zero means but are not necessarily white noise.
+full$SP.stab = c(NA, diff(BoxCox(full$SP, 0.041)) - 0.0089)
+full$UNRATE.stab = c(NA, diff(BoxCox(full$UNRATE, -1)))
+full$WTI.stab = c(NA, diff(BoxCox(full$WTI, 0.221)))
 
+full$SP.stab.lag2 = lag(full$SP.stab, 2)
+full$SP.stab.lag10 = lag(full$SP.stab,10)
+full$UNRATE.stab.lag10 = lag(full$UNRATE.stab, 10)
+
+full.train = full[12:498,]
