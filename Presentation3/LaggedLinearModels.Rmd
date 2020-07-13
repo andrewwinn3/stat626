@@ -11,14 +11,22 @@ header-includes: \usepackage{amsmath}
 ```{r}
 # Provides data frame 'full' with UMCSENT series and regressors
 source(url('https://raw.githubusercontent.com/andrewwinn3/stat626/master/Data/Setup.R'))
+attach(full.train)
 ```
 
+# Repeat model for UMCSENT
 ```{r}
-attach(full)
+lm.UMCSENT = auto.arima(UMCSENT, lambda='auto', seasonal=FALSE, stepwise = FALSE)
+lm.UMCSENT
+checkresiduals(lm.UMCSENT)
+UMCSENT.fitted = fitted(lm.UMCSENT)
 ```
+
+
+# Models for regressors
 
 ### SP:
-ARIMA(0,1,0) model with drift and $\lambda = 0.041$ B-C transformation.
+ARIMA(0,1,0) model with $\delta = 0.0089_{(0.0025)}$ drift and $\lambda = 0.041$ B-C transformation.
 ```{r}
 lm.SP = auto.arima(SP, lambda='auto', seasonal=FALSE, stepwise=FALSE)
 lm.SP
@@ -47,5 +55,54 @@ ARIMA(1,1,0) model with drift and $\lambda = 0.221$ B-C transformation.
 lm.WTI = auto.arima(WTI, lambda="auto", seasonal=FALSE, stepwise=FALSE)
 lm.WTI
 checkresiduals(lm.WTI)
+```
+
+# Examination of cross-correlation
+```{r}
+detach(full)
+attach(full.train)
+# Stabilized models are denoted by *.stab
+ccf(UMCSENT, SP.stab)
+ccf(UMCSENT, UNRATE.stab)
+ccf(UMCSENT, WTI.stab)
+```
+
+```{r}
+lm.full = lm(UMCSENT ~ SP.stab + SP.stab.lag2 + SP.stab.lag10 + UNRATE.stab + UNRATE.stab.lag10,
+            data = full.train)
+summary(lm.full)
+
+lm.leaps = regsubsets(UMCSENT ~ UMCSENT.fitted + SP.stab + SP.stab.lag2 +
+                    SP.stab.lag10 + UNRATE.stab + UNRATE.stab.lag10, data = full.train)
+summary(lm.leaps)
+
+lm.leaps.1 = lm(UMCSENT ~ UMCSENT.fitted)
+lm.leaps.2 = lm(UMCSENT ~ UMCSENT.fitted + SP.stab)
+lm.leaps.3 = lm(UMCSENT ~ UMCSENT.fitted + SP.stab + SP.stab.lag2)
+lm.leaps.4 = lm(UMCSENT ~ UMCSENT.fitted + SP.stab + SP.stab.lag2 + UNRATE.stab.lag10)
+lm.leaps.5 = lm(UMCSENT ~ UMCSENT.fitted + SP.stab + SP.stab.lag2 + UNRATE.stab +
+                  SP.stab.lag10)
+lm.leaps.6 = lm(UMCSENT ~ UMCSENT.fitted + SP.stab + SP.stab.lag2 + SP.stab.lag10 + 
+                  UNRATE.stab + SP.stab.lag10)
+
+lm.leaps.AIC = c(
+  AIC(lm.leaps.1),
+  AIC(lm.leaps.2),
+  AIC(lm.leaps.3),
+  AIC(lm.leaps.4),
+  AIC(lm.leaps.5),
+  AIC(lm.leaps.6)
+)
+lm.leaps.BIC = c(
+  BIC(lm.leaps.1),
+  BIC(lm.leaps.2),
+  BIC(lm.leaps.3),
+  BIC(lm.leaps.4),
+  BIC(lm.leaps.5),
+  BIC(lm.leaps.6)
+)
+
+summary(lm.leaps.1)
+summary(lm.leaps.4)
 ```
 
