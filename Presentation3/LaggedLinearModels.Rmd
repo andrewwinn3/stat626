@@ -110,45 +110,32 @@ cat('\nI recommend four-variable model.')
 plot(lm.leaps.4)
 ```
 
-We now consider some models which utilize the fitted values from the UMCSENT ARIMA model investigated previously.
+We now consider, using backward selection, some models which incorporate an ARIMA component in the UMCSENT series.
 
 ```{r}
-lm.leaps.wFit = regsubsets(UMCSENT.stab ~ UMCSENT.stab.fitted + SP.stab.lag1 + SP.stab.lag3 +
-                        UNRATE.stab.lead2 + WTI.stab.lag1, data = full.train)
-summary(lm.leaps.wFit)
+lm.arima.4 = auto.arima(UMCSENT, lambda="auto", seasonal=FALSE, stepwise=FALSE,
+                        xreg=cbind(SP.stab.lag1, WTI.stab.lag1,
+                                   UNRATE.stab.lead2, SP.stab.lag3))
+summary(lm.arima.4)
+cat('\nStandardized regression coefficients:\n')
+lm.arima.4.stdcoef=lm.arima.4$coef/sqrt(diag(lm.arima.4$var.coef))
+lm.arima.4.stdcoef
 
-lm.leaps.wFit.1 = lm(UMCSENT.stab ~ SP.stab.lag1)
-lm.leaps.wFit.2 = lm(UMCSENT.stab ~ UMCSENT.stab.fitted + SP.stab.lag1)
-lm.leaps.wFit.3 = lm(UMCSENT.stab ~ UMCSENT.stab.fitted + SP.stab.lag1 + WTI.stab.lag1)
-lm.leaps.wFit.4 = lm(UMCSENT.stab ~ UMCSENT.stab.fitted + SP.stab.lag1 + WTI.stab.lag1 +
-                  UNRATE.stab.lead2)
-lm.leaps.wFit.5 = lm(UMCSENT.stab ~ UMCSENT.stab.fitted + SP.stab.lag1 + WTI.stab.lag1 +
-                  UNRATE.stab.lead2 + SP.stab.lag3)
+#Remove UNRATE.stab.lead2
+lm.arima.3 = auto.arima(UMCSENT, lambda="auto", seasonal=FALSE, stepwise=FALSE,
+                        xreg=cbind(SP.stab.lag1, WTI.stab.lag1, SP.stab.lag3))
+summary(lm.arima.3)
+cat('\nStandardized regression coefficients:\n')
+lm.arima.3.stdcoef=lm.arima.3$coef/sqrt(diag(lm.arima.3$var.coef))
+lm.arima.3.stdcoef
 
-lm.leaps.wFit.AIC = c(
-  AIC(lm.leaps.wFit.1),
-  AIC(lm.leaps.wFit.2),
-  AIC(lm.leaps.wFit.3),
-  AIC(lm.leaps.wFit.4),
-  AIC(lm.leaps.wFit.5)
-)
-lm.leaps.wFit.BIC = c(
-  BIC(lm.leaps.wFit.1),
-  BIC(lm.leaps.wFit.2),
-  BIC(lm.leaps.wFit.3),
-  BIC(lm.leaps.wFit.4),
-  BIC(lm.leaps.wFit.5)
-)
-
-summary(lm.leaps.wFit.1)
-summary(lm.leaps.wFit.2)
-summary(lm.leaps.wFit.3)
-summary(lm.leaps.wFit.4)
-summary(lm.leaps.wFit.5)
-
-cat('\nAIC for 1-4 variable models\n', lm.leaps.wFit.AIC)
-cat('\nBIC for 1-4 variable models\n', lm.leaps.wFit.BIC)
-cat('\nThe four-variable model is recommended.')
-
-plot(lm.leaps.wFit.4)
+#Remove SP.stab.lag3
+lm.arima.2 = auto.arima(UMCSENT, lambda="auto", seasonal=FALSE, stepwise=FALSE,
+                        xreg=cbind(SP.stab.lag1, WTI.stab.lag1))
+summary(lm.arima.2)
+cat('\nStandardized regression coefficients:\n')
+lm.arima.2.stdcoef=lm.arima.2$coef/sqrt(diag(lm.arima.2$var.coef))
+lm.arima.2.stdcoef
 ```
+
+Backward selection brings us to the regressive model with lag 1 (differenced) S&P 500 series, as well as the lag 1 (differenced) WTI series.
