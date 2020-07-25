@@ -111,6 +111,7 @@ cat('\nI recommend four-variable model.')
 plot(lm.leaps.4)
 ```
 
+# Lagged reg. with ARIMA errors
 We now consider, using backward selection, some models which incorporate an ARIMA component in the UMCSENT series. Note the 
 
 ```{r}
