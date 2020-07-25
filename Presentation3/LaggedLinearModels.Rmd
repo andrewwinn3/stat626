@@ -33,9 +33,9 @@ UMCSENT.stab.fitted = fitted(lm.UMCSENT.stab)
 # Models for regressors
 
 ### SP:
-ARIMA(0,1,0) model with $\delta = 0.0089_{(0.0025)}$ drift and $\lambda = 0.041$ B-C transformation.
+ARIMA(0,1,0) model with $\delta = 0.007_{(0.002)}$ drift and log transformation.
 ```{r}
-lm.SP = auto.arima(SP, lambda='auto', seasonal=FALSE, stepwise=FALSE)
+lm.SP = auto.arima(log(SP), seasonal=FALSE, stepwise=FALSE)
 lm.SP
 checkresiduals(lm.SP)
 ```
@@ -49,17 +49,17 @@ checkresiduals(lm.DGS1.log)
 ```
 
 ### UNRATE:
-ARIMA(1,1,1) model with $\lambda = -1.000$ B-C transformation.
+ARIMA(1,1,3) model with log transformation.
 ```{r}
-lm.UNRATE = auto.arima(UNRATE, lambda="auto", seasonal=FALSE, stepwise=FALSE)
+lm.UNRATE = auto.arima(log(UNRATE), seasonal=FALSE, stepwise=FALSE)
 lm.UNRATE
 checkresiduals(lm.UNRATE)
 ```
 
 ### WTI:
-ARIMA(1,1,0) model with drift and $\lambda = 0.221$ B-C transformation.
+ARIMA(2,1,1) model with log transformation.
 ```{r}
-lm.WTI = auto.arima(WTI, lambda="auto", seasonal=FALSE, stepwise=FALSE)
+lm.WTI = auto.arima(log(WTI), seasonal=FALSE, stepwise=FALSE)
 lm.WTI
 checkresiduals(lm.WTI)
 ```
@@ -67,23 +67,24 @@ checkresiduals(lm.WTI)
 # Examination of cross-correlation
 ```{r}
 # Stabilized models are denoted by *.stab
-ccf(UMCSENT.stab, SP.stab)
-ccf(UMCSENT.stab, UNRATE.stab)
-ccf(UMCSENT.stab, WTI.stab)
-```
+ccf(UMCSENT.stab, SP.stab, ylab='CCF')
+ccf(UMCSENT.stab, UNRATE.stab, ylab='CCF')
+ccf(UMCSENT.stab, WTI.stab, ylab='CCF')
+```  
 
+It appears that 
+ 
 # Lagged regression models
-These models are based solely on the regressors, rather than any autoregression.
+These models are based solely on the regressors, rather than any autoregression. (We probably shouldn't include this bit in the report.)
 ```{r}
-lm.leaps = regsubsets(UMCSENT.stab ~ SP.stab.lag1 + SP.stab.lag3 +
-                        UNRATE.stab.lead2 + WTI.stab.lag1, data = full.train)
+lm.leaps = regsubsets(UMCSENT.stab ~ SP.stab + SP.stab.lag1 + SP.stab.lag2 +
+                      SP.stab.lag3 + UNRATE.stab.lag1 + WTI.stab.lag1, data = full.train)
 summary(lm.leaps)
 
 lm.leaps.1 = lm(UMCSENT.stab ~ SP.stab.lag1)
 lm.leaps.2 = lm(UMCSENT.stab ~ SP.stab.lag1 + WTI.stab.lag1)
-lm.leaps.3 = lm(UMCSENT.stab ~ SP.stab.lag1 + WTI.stab.lag1 + UNRATE.stab.lead2)
-lm.leaps.4 = lm(UMCSENT.stab ~ SP.stab.lag1 + WTI.stab.lag1 + UNRATE.stab.lead2 + 
-                  SP.stab.lag3)
+lm.leaps.3 = lm(UMCSENT.stab ~ SP.stab.lag1 + WTI.stab.lag1 + SP.stab)
+lm.leaps.4 = lm(UMCSENT.stab ~ SP.stab.lag1 + WTI.stab.lag1 + SP.stab + SP.stab.lag2)
 
 lm.leaps.AIC = c(
   AIC(lm.leaps.1),
@@ -110,18 +111,18 @@ cat('\nI recommend four-variable model.')
 plot(lm.leaps.4)
 ```
 
-We now consider, using backward selection, some models which incorporate an ARIMA component in the UMCSENT series.
+We now consider, using backward selection, some models which incorporate an ARIMA component in the UMCSENT series. Note the 
 
 ```{r}
-lm.arima.4 = auto.arima(UMCSENT, lambda="auto", seasonal=FALSE, stepwise=FALSE,
+lm.arima.4 = auto.arima(log(UMCSENT), seasonal=FALSE, stepwise=FALSE,
                         xreg=cbind(SP.stab.lag1, WTI.stab.lag1,
-                                   UNRATE.stab.lead2, SP.stab.lag3))
+                                   UNRATE.stab.lag1, SP.stab.lag3))
 summary(lm.arima.4)
 cat('\nStandardized regression coefficients:\n')
 lm.arima.4.stdcoef=lm.arima.4$coef/sqrt(diag(lm.arima.4$var.coef))
 lm.arima.4.stdcoef
 
-#Remove UNRATE.stab.lead2
+#Remove UNRATE.stab.lag1
 lm.arima.3 = auto.arima(UMCSENT, lambda="auto", seasonal=FALSE, stepwise=FALSE,
                         xreg=cbind(SP.stab.lag1, WTI.stab.lag1, SP.stab.lag3))
 summary(lm.arima.3)
