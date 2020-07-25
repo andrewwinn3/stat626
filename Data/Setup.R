@@ -34,14 +34,15 @@ full$DGS1.log.diff3 = c(0,0,0,diff(full$DGS1.log, 3))
 
 # Stabilized series:
 #    series are transformed by B-C procedure and are
-#    stationary with zero means but are not necessarily white noise.
-full$SP.stab = c(NA, diff(BoxCox(full$SP, 0.041)) - 0.0089)
-full$UNRATE.stab = c(NA, diff(BoxCox(full$UNRATE, -1)))
-full$WTI.stab = c(NA, diff(BoxCox(full$WTI, 0.221)))
+#    stationary
+full$SP.stab = c(NA, diff(log(full$SP)))
+full$UNRATE.stab = c(NA, diff(log(full$UNRATE)))
+full$WTI.stab = c(NA, diff(log(full$WTI)))
 
 full$SP.stab.lag1 = lag(full$SP.stab, 1)
-full$SP.stab.lag3 = lag(full$SP.stab,3)
-full$UNRATE.stab.lead2 = lead(full$UNRATE.stab,2)
+full$SP.stab.lag2 = lag(full$SP.stab, 2)
+full$SP.stab.lag3 = lag(full$SP.stab, 3)
+full$UNRATE.stab.lag1 = lag(full$UNRATE.stab, 1)
 full$WTI.stab.lag1 = lag(full$WTI.stab,1)
 
 full.train = full[12:498,]
