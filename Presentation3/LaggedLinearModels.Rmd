@@ -140,3 +140,17 @@ lm.arima.2.stdcoef
 ```
 
 Backward selection brings us to the regressive model with lag 1 (differenced) S&P 500 series, as well as the lag 1 (differenced) WTI series.
+
+*** ELI'S NEW EDIT - 7.27.20
+This code produces 10-month ahead forecasts from our lagged regression model
+
+```{r}
+newxreg = cbind(full[499:508, c(24, 28)])
+exp(predict(lm.arima.2, n.ahead = 10, newxreg = newxreg)$pred)
+
+full$UMCSENT[499:508]
+
+plot(x = 1:10, y = full$UMCSENT[499:508], col = 'red', type = 'l', xlab = "Months from June 2019", ylab = "Sentiment", main = "The Pandemic Ruins Everything")
+lines(x = 1:10, y = exp(predict(lm.arima.2, n.ahead = 10, newxreg = newxreg)$pred), col = 'blue')
+legend("bottomleft", c("Predicted","Actual"), fill=c("blue","red"))
+```
