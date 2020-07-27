@@ -72,7 +72,6 @@ ccf(UMCSENT.stab, UNRATE.stab, ylab='CCF')
 ccf(UMCSENT.stab, WTI.stab, ylab='CCF')
 ```  
 
-It appears that 
  
 # Lagged regression models
 These models are based solely on the regressors, rather than any autoregression. (We probably shouldn't include this bit in the report.)
@@ -112,7 +111,7 @@ plot(lm.leaps.4)
 ```
 
 # Lagged reg. with ARIMA errors
-We now consider, using backward selection, some models which incorporate an ARIMA component in the UMCSENT series. Note the 
+We now consider some lagged regression models which have ARIMA errors. We use backward selection, starting with a four-variable model.
 
 ```{r}
 lm.arima.4 = auto.arima(log(UMCSENT), seasonal=FALSE, stepwise=FALSE,
@@ -123,16 +122,16 @@ cat('\nStandardized regression coefficients:\n')
 lm.arima.4.stdcoef=lm.arima.4$coef/sqrt(diag(lm.arima.4$var.coef))
 lm.arima.4.stdcoef
 
-#Remove UNRATE.stab.lag1
-lm.arima.3 = auto.arima(UMCSENT, lambda="auto", seasonal=FALSE, stepwise=FALSE,
-                        xreg=cbind(SP.stab.lag1, WTI.stab.lag1, SP.stab.lag3))
+#Remove SP.stab.lag3
+lm.arima.3 = auto.arima(log(UMCSENT), seasonal=FALSE, stepwise=FALSE,
+                        xreg=cbind(SP.stab.lag1, WTI.stab.lag1, UNRATE.stab.lag1))
 summary(lm.arima.3)
 cat('\nStandardized regression coefficients:\n')
 lm.arima.3.stdcoef=lm.arima.3$coef/sqrt(diag(lm.arima.3$var.coef))
 lm.arima.3.stdcoef
 
-#Remove SP.stab.lag3
-lm.arima.2 = auto.arima(UMCSENT, lambda="auto", seasonal=FALSE, stepwise=FALSE,
+#Remove UNRATE.stab.lag1
+lm.arima.2 = auto.arima(log(UMCSENT), seasonal=FALSE, stepwise=FALSE,
                         xreg=cbind(SP.stab.lag1, WTI.stab.lag1))
 summary(lm.arima.2)
 cat('\nStandardized regression coefficients:\n')
